@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 )
@@ -21,8 +22,12 @@ type FileHash struct {
 	Node
 }
 
-func (f *FileHash) Hash() (hash []byte) {
-	fd, err := os.Open(f.path)
+func NewFileHash(path string) FileHash {
+	return FileHash{Node: Node{path: path}}
+}
+
+func (this FileHash) Hash() (hash []byte) {
+	fd, err := os.Open(this.path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,7 +43,42 @@ func (f *FileHash) Hash() (hash []byte) {
 	return h.Sum(nil)
 }
 
+type DirectoryHash struct {
+	Node
+	nodes []Node
+}
+
+func NewDirectoryHash(path string) DirectoryHash {
+	directory := DirectoryHash{Node: Node{path: path}}
+
+	files, err := ioutil.ReadDir(path)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	directory.nodes = make([]Node, len(files))
+
+	for _, file := range files {
+		if file.IsDir() {
+			directory.Add(NewDirectoryHash(file.Name()).Node)
+		} else {
+			directory.Add(NewFileHash(file.Name()).Node)
+		}
+	}
+
+	return directory
+}
+
+func (this DirectoryHash) Add(node Node) {
+	this.nodes = append(this.nodes, node)
+}
+
+func (this DirectoryHash) Hash() (hash []byte) {
+	return []byte{}
+}
+
 func main() {
-	f := FileHash{Node: Node{path: "./test/test1.txt"}}
+	f := NewDirectoryHash("./test")
 	fmt.Println(fmt.Sprintf("%x", f.Hash()))
 }
