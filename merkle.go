@@ -39,6 +39,6 @@ func (f *FileHash) Hash() (hash []byte) {
 }
 
 func main() {
-	f := FileHash{"./test/test1.txt"}
+	f := FileHash{Node: Node{path: "./test/test1.txt"}}
 	fmt.Println(fmt.Sprintf("%x", f.Hash()))
 }
