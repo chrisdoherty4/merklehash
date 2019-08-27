@@ -9,8 +9,10 @@ import (
 	"os"
 )
 
+const sha256Len = 64
+
 type Hasher interface {
-	Hash() (hash []byte)
+	Hash() []byte
 }
 
 type Node struct {
@@ -26,7 +28,7 @@ func NewFileHash(path string) FileHash {
 	return FileHash{Node: Node{path: path}}
 }
 
-func (this FileHash) Hash() (hash []byte) {
+func (this FileHash) Hash() []byte {
 	fd, err := os.Open(this.path)
 	if err != nil {
 		log.Fatal(err)
@@ -74,8 +76,17 @@ func (this DirectoryHash) Add(node Node) {
 	this.nodes = append(this.nodes, node)
 }
 
-func (this DirectoryHash) Hash() (hash []byte) {
-	return []byte{}
+func (this DirectoryHash) Hash() []byte {
+	hashes := make([]byte, len(this.nodes)*sha256Len)
+
+	fmt.Print("Hashes slice len: ")
+	fmt.Println(len(hashes))
+
+	for i, _ := range this.nodes {
+		println(i * sha256Len)
+	}
+
+	return sha256.New().Sum(hashes)
 }
 
 func main() {
