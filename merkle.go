@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,36 +11,34 @@ import (
 	"path/filepath"
 )
 
-const sha256Len = 64
-
 // Hasher is an interface to retrieve arbitrary hashes of objects.
 type Hasher interface {
 	Hash() []byte
 }
 
-// NodeHasher is an abstract path hasher.
-type NodeHasher struct {
-	Hasher
-	path string
-}
-
-// FileHasher is an interface to retrieve the hash of a file.
-type FileHasher struct {
-	NodeHasher
+// PathHasher is an abstract path hasher.
+type PathHasher struct {
+	path     string
+	fileInfo os.FileInfo
 }
 
 // NewFileHasher creates and initiliases a new FileHasher.
-func NewFileHasher(path string) FileHasher {
+func NewPathHasher(path string) *PathHasher {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return FileHasher{NodeHasher: NodeHasher{path: path}}
+	pathFileInfo, err := os.Stat(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &PathHasher{path: path, fileInfo: pathFileInfo}
 }
 
 // Hash retrieves the hash of a File.
-func (this FileHasher) Hash() []byte {
+func (this *PathHasher) Hash() []byte {
 	fd, err := os.Open(this.path)
 	if err != nil {
 		log.Fatal(err)
@@ -47,29 +46,37 @@ func (this FileHasher) Hash() []byte {
 
 	defer fd.Close()
 
-	h := sha256.New()
+	hasher := sha256.New()
 
-	if _, err := io.Copy(h, fd); err != nil {
+	if _, err := io.Copy(hasher, fd); err != nil {
 		log.Fatal(err)
 	}
 
-	return h.Sum(nil)
+	return hasher.Sum(nil)
 }
 
 // DirectoryHasher is an interface to retrieve directory hashes.
 // This structure forms the basis for the merkle hash.
 type DirectoryHasher struct {
-	NodeHasher
-	nodes []NodeHasher
+	PathHasher
+	nodes []*PathHasher
 }
 
 // NewDirectoryHasher creates and initialises a DirectoryHasher structure.
-func NewDirectoryHasher(path string) DirectoryHasher {
-	// Make the path absolute and ensure it exists. We check it's existence
-	// by ensuring there's no error when running ioutil.ReadDir.
+func NewDirectoryHasher(path string) *DirectoryHasher {
+	// Make the path absolute and ensure it exists.
 	path, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	dirFileInfo, err := os.Stat(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !dirFileInfo.IsDir() {
+		log.Fatalf("%v is not a directory", path)
 	}
 
 	files, err := ioutil.ReadDir(path)
@@ -77,39 +84,52 @@ func NewDirectoryHasher(path string) DirectoryHasher {
 		log.Fatal(err)
 	}
 
-	directory := DirectoryHasher{NodeHasher: NodeHasher{path: path}}
-	directory.nodes = make([]NodeHasher, len(files))
+	directory := DirectoryHasher{
+		PathHasher: PathHasher{
+			path:     path,
+			fileInfo: dirFileInfo,
+		},
+	}
 
 	for _, file := range files {
+		fullPath := filepath.Join(path, file.Name())
 		if file.IsDir() {
-			directory.Add(NewDirectoryHasher(file.Name()).NodeHasher)
+			directory.Add(&NewDirectoryHasher(fullPath).PathHasher)
 		} else {
-			directory.Add(NewFileHasher(file.Name()).NodeHasher)
+			directory.Add(NewPathHasher(fullPath))
 		}
 	}
 
-	return directory
+	return &directory
 }
 
 // Add adds a node to a DirectoryHasher.
-func (this DirectoryHasher) Add(node NodeHasher) {
+func (this *DirectoryHasher) Add(node *PathHasher) {
 	this.nodes = append(this.nodes, node)
 }
 
 // Hash retrieves the merkle hash for a given directory.
-func (this DirectoryHasher) Hash() []byte {
-	hashes := make([]byte, len(this.nodes)*sha256Len)
-
-	fmt.Println(fmt.Sprintf("Hash len: %v", len(hashes)))
+func (this *DirectoryHasher) Hash() []byte {
+	hasher := sha256.New()
 
 	for _, node := range this.nodes {
-		fmt.Println(fmt.Sprintf("%v", node.path))
+		hasher.Write(node.Hash())
 	}
 
-	return sha256.New().Sum(hashes)
+	return hasher.Sum(nil)
+}
+
+func hashFile(path string) {
+	f := NewPathHasher(path)
+	fmt.Println(fmt.Sprintf("Hash of %v: %v", path, hex.EncodeToString(f.Hash())))
+}
+
+func hashDirectory(path string) {
+	f := NewDirectoryHasher(path)
+	fmt.Println(fmt.Sprintf("Hash of %v: %v", path, hex.EncodeToString(f.Hash())))
 }
 
 func main() {
-	f := NewDirectoryHasher("./test")
-	_ = f.Hash()
+	hashFile("test/test1.txt")
+	hashDirectory("test")
 }
