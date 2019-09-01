@@ -213,12 +213,14 @@ func main() {
 		os.Exit(0)
 	}
 
+	// TODO: Add support for multiple directories.
+	// TODO: Protection against huge file systems?
+
 	// Create a new merkle tree and output the hex representation of it's hash.
-	fmt.Print(fmt.Sprintf("%x", NewMerkleTree(flag.Arg(0), hasher).Hash()))
+	fmt.Fprintf(os.Stdout, "%x", NewMerkleTree(flag.Arg(0), hasher).Hash())
 
 	if !*raw {
-		fmt.Print(fmt.Sprintf(" %v", flag.Arg(0)))
+		fmt.Fprintf(os.Stdout, " %v", flag.Arg(0))
 	}
-
 	println()
 }
