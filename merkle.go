@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,19 +12,18 @@ import (
 	"path/filepath"
 )
 
-// Hasher is an interface to retrieve arbitrary hashes of objects.
-type Hasher interface {
+type hashable interface {
 	Hash() []byte
 }
 
-// PathHasher is an abstract path hasher.
-type PathHasher struct {
+// pathHasher is an abstract path hasher.
+type pathHasher struct {
 	path     string
 	fileInfo os.FileInfo
+	hasher   hash.Hash
 }
 
-// NewFileHasher creates and initiliases a new FileHasher.
-func NewPathHasher(path string) *PathHasher {
+func newPathHasher(path string, algorithm hash.Hash) *pathHasher {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
@@ -34,11 +34,10 @@ func NewPathHasher(path string) *PathHasher {
 		log.Fatal(err)
 	}
 
-	return &PathHasher{path: path, fileInfo: pathFileInfo}
+	return &pathHasher{path: path, fileInfo: pathFileInfo, hasher: algorithm}
 }
 
-// Hash retrieves the hash of a File.
-func (this *PathHasher) Hash() []byte {
+func (this *pathHasher) Hash() []byte {
 	fd, err := os.Open(this.path)
 	if err != nil {
 		log.Fatal(err)
@@ -46,24 +45,22 @@ func (this *PathHasher) Hash() []byte {
 
 	defer fd.Close()
 
-	hasher := sha256.New()
-
-	if _, err := io.Copy(hasher, fd); err != nil {
+	if _, err := io.Copy(this.hasher, fd); err != nil {
 		log.Fatal(err)
 	}
 
-	return hasher.Sum(nil)
+	return this.hasher.Sum(nil)
 }
 
-// DirectoryHasher is an interface to retrieve directory hashes.
+// MerkleHasher is an interface to retrieve directory hashes.
 // This structure forms the basis for the merkle hash.
-type DirectoryHasher struct {
-	PathHasher
-	nodes []*PathHasher
+type MerkleHasher struct {
+	pathHasher
+	nodes []hashable
 }
 
-// NewDirectoryHasher creates and initialises a DirectoryHasher structure.
-func NewDirectoryHasher(path string) *DirectoryHasher {
+// NewMerkleHasher creates and initialises a MerkleHasher structure.
+func NewMerkleHasher(path string, algorithm hash.Hash) *MerkleHasher {
 	// Make the path absolute and ensure it exists.
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -84,52 +81,40 @@ func NewDirectoryHasher(path string) *DirectoryHasher {
 		log.Fatal(err)
 	}
 
-	directory := DirectoryHasher{
-		PathHasher: PathHasher{
-			path:     path,
-			fileInfo: dirFileInfo,
-		},
+	directory := MerkleHasher{
+		pathHasher: *newPathHasher(path, algorithm),
 	}
 
 	for _, file := range files {
 		fullPath := filepath.Join(path, file.Name())
 		if file.IsDir() {
-			directory.Add(&NewDirectoryHasher(fullPath).PathHasher)
+			directory.Add(NewMerkleHasher(fullPath, algorithm))
 		} else {
-			directory.Add(NewPathHasher(fullPath))
+			directory.Add(newPathHasher(fullPath, algorithm))
 		}
 	}
 
 	return &directory
 }
 
-// Add adds a node to a DirectoryHasher.
-func (this *DirectoryHasher) Add(node *PathHasher) {
+// Add adds a node to a MerkleHasher.
+func (this *MerkleHasher) Add(node hashable) {
 	this.nodes = append(this.nodes, node)
 }
 
 // Hash retrieves the merkle hash for a given directory.
-func (this *DirectoryHasher) Hash() []byte {
-	hasher := sha256.New()
-
+func (this *MerkleHasher) Hash() []byte {
 	for _, node := range this.nodes {
-		hasher.Write(node.Hash())
+		this.hasher.Write(node.Hash())
 	}
 
-	return hasher.Sum(nil)
-}
-
-func hashFile(path string) {
-	f := NewPathHasher(path)
-	fmt.Println(fmt.Sprintf("Hash of %v: %v", path, hex.EncodeToString(f.Hash())))
-}
-
-func hashDirectory(path string) {
-	f := NewDirectoryHasher(path)
-	fmt.Println(fmt.Sprintf("Hash of %v: %v", path, hex.EncodeToString(f.Hash())))
+	return this.hasher.Sum(nil)
 }
 
 func main() {
-	hashFile("test/test1.txt")
-	hashDirectory("test")
+	path := "test"
+	fmt.Println(fmt.Sprintf("%v %v",
+		path,
+		hex.EncodeToString(NewMerkleHasher(path, sha256.New()).Hash()),
+	))
 }
