@@ -147,39 +147,39 @@ func (this *AlgorithmList) GetHasher(ident string) hash.Hash {
 }
 
 func init() {
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"md5",
 		func() hash.Hash { return md5.New() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha224",
 		func() hash.Hash { return sha256.New224() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha256",
 		func() hash.Hash { return sha256.New() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha384",
 		func() hash.Hash { return sha512.New384() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha512",
 		func() hash.Hash { return sha512.New() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha3-224",
 		func() hash.Hash { return sha3.New224() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha3-256",
 		func() hash.Hash { return sha3.New256() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha3-384",
 		func() hash.Hash { return sha3.New384() },
 	})
-	algorithms.PushFront(&Algorithm{
+	algorithms.PushBack(&Algorithm{
 		"sha3-512",
 		func() hash.Hash { return sha3.New512() },
 	})
