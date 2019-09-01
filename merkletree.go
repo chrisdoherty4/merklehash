@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -20,28 +21,28 @@ type hashable interface {
 	Hash() []byte
 }
 
-// fileHasher is an abstract path hasher.
-type fileHasher struct {
-	path     string
-	fileInfo os.FileInfo
-	hasher   hash.Hash
+type pathHasher struct {
+	path   string
+	info   os.FileInfo
+	hasher hash.Hash
 }
 
-func newPathHasher(path string, hasher hash.Hash) *fileHasher {
+func newPathHasher(path string, hasher hash.Hash) *pathHasher {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	pathFileInfo, err := os.Stat(path)
+	info, err := os.Stat(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return &fileHasher{path: path, fileInfo: pathFileInfo, hasher: hasher}
+	return &pathHasher{path: path, info: info, hasher: hasher}
 }
 
-func (this *fileHasher) Hash() []byte {
+// Hash uses the pathHasher's hasher to generate the hash of a file.
+func (this *pathHasher) Hash() []byte {
 	fd, err := os.Open(this.path)
 	if err != nil {
 		log.Fatal(err)
@@ -59,24 +60,24 @@ func (this *fileHasher) Hash() []byte {
 // MerkleTree is an interface to retrieve directory hashes.
 // This structure forms the basis for the merkle hash.
 type MerkleTree struct {
-	fileHasher
+	pathHasher
 	nodes []hashable
 }
 
 // NewMerkleTree creates and initialises a MerkleTree structure.
+// MerkleTree's has can be retrieved via the MerkleTree.Hash() interface.
 func NewMerkleTree(path string, hasher hash.Hash) *MerkleTree {
-	// Make the path absolute and ensure it exists.
 	path, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dirFileInfo, err := os.Stat(path)
+	info, err := os.Stat(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if !dirFileInfo.IsDir() {
+	if !info.IsDir() {
 		log.Fatalf("%v is not a directory", path)
 	}
 
@@ -86,7 +87,11 @@ func NewMerkleTree(path string, hasher hash.Hash) *MerkleTree {
 	}
 
 	directory := MerkleTree{
-		fileHasher: *newPathHasher(path, hasher),
+		pathHasher: pathHasher{
+			path:   path,
+			info:   info,
+			hasher: hasher,
+		},
 	}
 
 	for _, file := range files {
@@ -115,42 +120,101 @@ func (this *MerkleTree) Hash() []byte {
 	return this.hasher.Sum(nil)
 }
 
-// Define all supported hashing algorithms.
-var algorithms = map[string]func() hash.Hash{
-	"md5":      func() hash.Hash { return md5.New() },
-	"sha256":   func() hash.Hash { return sha256.New() },
-	"sha224":   func() hash.Hash { return sha256.New224() },
-	"sha384":   func() hash.Hash { return sha512.New384() },
-	"sha512":   func() hash.Hash { return sha512.New() },
-	"sha3-224": func() hash.Hash { return sha3.New224() },
-	"sha3-256": func() hash.Hash { return sha3.New256() },
-	"sha3-384": func() hash.Hash { return sha3.New384() },
-	"sha3-512": func() hash.Hash { return sha3.New512() },
+// algorithm defines a selectable algorithm from the command line interface.
+type Algorithm struct {
+	Ident string
+	New   func() hash.Hash
 }
 
-var alg = flag.String(
-	"alg",
-	"sha256",
-	"Hashing algorithm to use with the merkle tree.",
-)
-var raw = flag.Bool("raw", false, "Print only the hex hash.")
+// We're going to create an AlgorithmList so we can append a function todo
+// retrieve the hash.Hash.
+type AlgorithmList struct {
+	list.List
+}
+
+var algorithms = AlgorithmList{}
+
+// Bind a hidden find function to the list structure.
+func (this *AlgorithmList) GetHasher(ident string) hash.Hash {
+	for e := this.Front(); e != nil; e = e.Next() {
+		alg := e.Value.(*Algorithm)
+		if alg.Ident == ident {
+			return alg.New()
+		}
+	}
+
+	return nil
+}
+
+func init() {
+	algorithms.PushFront(&Algorithm{
+		"md5",
+		func() hash.Hash { return md5.New() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha224",
+		func() hash.Hash { return sha256.New224() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha256",
+		func() hash.Hash { return sha256.New() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha384",
+		func() hash.Hash { return sha512.New384() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha512",
+		func() hash.Hash { return sha512.New() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha3-224",
+		func() hash.Hash { return sha3.New224() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha3-256",
+		func() hash.Hash { return sha3.New256() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha3-384",
+		func() hash.Hash { return sha3.New384() },
+	})
+	algorithms.PushFront(&Algorithm{
+		"sha3-512",
+		func() hash.Hash { return sha3.New512() },
+	})
+}
 
 func main() {
+	// Define the command line interface
+	alg := flag.String(
+		"alg",
+		"sha256",
+		"Hashing algorithm to use with the merkle tree.",
+	)
+
+	raw := flag.Bool("raw", false, "Print only the hex hash.")
+
+	// TODO: Tidy up help comment
 	flag.Parse()
 
 	if flag.NArg() != 1 {
-		fmt.Println("Invalid invocation")
+		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
-	hasher, ok := algorithms[*alg]
-	if !ok {
-		fmt.Println("Available algs...")
-		os.Exit(1)
+	hasher := algorithms.GetHasher(*alg)
+
+	if hasher == nil {
+		fmt.Fprintf(os.Stdout, "'%v' is not a valid algorithm. Value algorithms are:\n", *alg)
+		for e := algorithms.Front(); e != nil; e = e.Next() {
+			fmt.Fprintf(os.Stdout, "  %v\n", e.Value.(*Algorithm).Ident)
+		}
+		os.Exit(0)
 	}
 
 	// Create a new merkle tree and output the hex representation of it's hash.
-	fmt.Print(fmt.Sprintf("%x", NewMerkleTree(flag.Arg(0), hasher()).Hash()))
+	fmt.Print(fmt.Sprintf("%x", NewMerkleTree(flag.Arg(0), hasher).Hash()))
 
 	if !*raw {
 		fmt.Print(fmt.Sprintf(" %v", flag.Arg(0)))
