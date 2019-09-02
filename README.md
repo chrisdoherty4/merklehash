@@ -1,4 +1,4 @@
-# gomerkle
+# merklehash
 A go implementation of a [merkle tree](https://en.wikipedia.org/wiki/Merkle_tree) for hashing arbitrary sized directories.
 
 ## Usage
