@@ -1,7 +1,7 @@
 # gomerkle
 A go implementation of a [merkle tree](https://en.wikipedia.org/wiki/Merkle_tree) for hashing arbitrary sized directories.
 
-# Usage
+## Usage
 Install
 ```
 go install "github.com/chrisdoherty4/gomerkle"
@@ -10,5 +10,5 @@ and run
 ```
 gomerkle <directory>
 ```
-# Known issues
+## Known issues
 * Symlinks are not followed and the app errors instead.
