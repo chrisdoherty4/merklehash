@@ -36,10 +36,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	// TODO: Add support for multiple directories.
-	// TODO: Protection against huge file systems?
-	// TODO: Resolve directory symlinks when going through directories.
-
 	// Create a new merkle hash and output the hex representation of it's hash.
 	fmt.Fprintf(os.Stdout, "%x", merklehash.New(flag.Arg(0), hasher).Hash())
 

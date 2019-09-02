@@ -10,5 +10,16 @@ and run
 ```
 merklehash <directory>
 ```
+
+## To do
+* Add support for specifying multiple directories.
+* Overridable protection against huge file systems.
+* Resolve symlinks when traversing directory structures.
+* Improve/expand help output.
+* Package for Linux platforms.
+* Package in a Windows installer.
+* Add a CI.
+* Complete test code.
+
 ## Known issues
 * Symlinks are not followed and the app errors instead.
