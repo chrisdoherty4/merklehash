@@ -1,6 +1,7 @@
+package main
 
 import "testing"
 
-func TestMerkleHasher(t testing.T) {
+func TestMerkleHasher(t *testing.T) {
 
 }
