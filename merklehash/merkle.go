@@ -95,17 +95,17 @@ func New(path string, hasher hash.Hash) *MerkleTree {
 	for _, file := range files {
 		fullPath := filepath.Join(path, file.Name())
 		if file.IsDir() {
-			directory.Add(New(fullPath, hasher))
+			directory.add(New(fullPath, hasher))
 		} else {
-			directory.Add(newPathHasher(fullPath, hasher))
+			directory.add(newPathHasher(fullPath, hasher))
 		}
 	}
 
 	return &directory
 }
 
-// Add adds a node to a MerkleTree.
-func (this *MerkleTree) Add(node hashable) {
+// add adds a node to a MerkleTree.
+func (this *MerkleTree) add(node hashable) {
 	this.nodes = append(this.nodes, node)
 }
 
