@@ -1,12 +1,10 @@
-package main
+package merklehash
 
 import (
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha512"
-	"flag"
-	"fmt"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -64,9 +62,9 @@ type MerkleTree struct {
 	nodes []hashable
 }
 
-// NewMerkleTree creates and initialises a MerkleTree structure.
+// New creates and initialises a MerkleTree structure.
 // MerkleTree's has can be retrieved via the MerkleTree.Hash() interface.
-func NewMerkleTree(path string, hasher hash.Hash) *MerkleTree {
+func New(path string, hasher hash.Hash) *MerkleTree {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
@@ -97,7 +95,7 @@ func NewMerkleTree(path string, hasher hash.Hash) *MerkleTree {
 	for _, file := range files {
 		fullPath := filepath.Join(path, file.Name())
 		if file.IsDir() {
-			directory.Add(NewMerkleTree(fullPath, hasher))
+			directory.Add(New(fullPath, hasher))
 		} else {
 			directory.Add(newPathHasher(fullPath, hasher))
 		}
@@ -132,9 +130,9 @@ type AlgorithmList struct {
 	list.List
 }
 
-var algorithms = AlgorithmList{}
+var Algorithms = AlgorithmList{}
 
-// Bind a hidden find function to the list structure.
+// GetHasher retrieves the hasher for a given algorithm identifier.
 func (this *AlgorithmList) GetHasher(ident string) hash.Hash {
 	for e := this.Front(); e != nil; e = e.Next() {
 		alg := e.Value.(*Algorithm)
@@ -146,81 +144,46 @@ func (this *AlgorithmList) GetHasher(ident string) hash.Hash {
 	return nil
 }
 
+// Has checks if an algorithm identifier exists in the Algorithmlist.
+func (this *AlgorithmList) Has(ident string) bool {
+	return this.GetHasher(ident) != nil
+}
+
 func init() {
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"md5",
 		func() hash.Hash { return md5.New() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha224",
 		func() hash.Hash { return sha256.New224() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha256",
 		func() hash.Hash { return sha256.New() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha384",
 		func() hash.Hash { return sha512.New384() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha512",
 		func() hash.Hash { return sha512.New() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha3-224",
 		func() hash.Hash { return sha3.New224() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha3-256",
 		func() hash.Hash { return sha3.New256() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha3-384",
 		func() hash.Hash { return sha3.New384() },
 	})
-	algorithms.PushBack(&Algorithm{
+	Algorithms.PushBack(&Algorithm{
 		"sha3-512",
 		func() hash.Hash { return sha3.New512() },
 	})
-}
-
-func main() {
-	// Define the command line interface
-	alg := flag.String(
-		"alg",
-		"sha256",
-		"Hashing algorithm to use with the merkle tree.",
-	)
-
-	raw := flag.Bool("raw", false, "Print only the hex hash.")
-
-	// TODO: Tidy up help comment
-	flag.Parse()
-
-	if flag.NArg() != 1 {
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
-
-	hasher := algorithms.GetHasher(*alg)
-
-	if hasher == nil {
-		fmt.Fprintf(os.Stdout, "'%v' is not a valid algorithm. Value algorithms are:\n", *alg)
-		for e := algorithms.Front(); e != nil; e = e.Next() {
-			fmt.Fprintf(os.Stdout, "  %v\n", e.Value.(*Algorithm).Ident)
-		}
-		os.Exit(0)
-	}
-
-	// TODO: Add support for multiple directories.
-	// TODO: Protection against huge file systems?
-
-	// Create a new merkle tree and output the hex representation of it's hash.
-	fmt.Fprintf(os.Stdout, "%x", NewMerkleTree(flag.Arg(0), hasher).Hash())
-
-	if !*raw {
-		fmt.Fprintf(os.Stdout, " %v", flag.Arg(0))
-	}
-	println()
 }
