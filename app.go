@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chrisdoherty4/gomerkle/merklehash"
+	"github.com/chrisdoherty4/merklehash/merklehash"
 )
 
 func main() {
