@@ -10,3 +10,5 @@ and run
 ```
 gomerkle <directory>
 ```
+# Known issues
+* Symlinks are not followed and the app errors instead.
