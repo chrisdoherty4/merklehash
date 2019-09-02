@@ -1,4 +1,4 @@
-package merklehash
+package main
 
 import (
 	"container/list"
