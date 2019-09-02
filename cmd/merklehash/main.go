@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chrisdoherty4/merklehash/merkle"
+	"github.com/chrisdoherty4/merklehash/merklehash"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	hasher := merkle.Algorithms.GetHasher(*alg)
+	hasher := merklehash.Algorithms.GetHasher(*alg)
 
 	if hasher == nil {
 		fmt.Fprintf(os.Stdout, "'%v' is not a valid algorithm. Value algorithms are:\n", *alg)
