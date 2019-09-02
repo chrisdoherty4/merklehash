@@ -4,11 +4,11 @@ A go implementation of a [merkle tree](https://en.wikipedia.org/wiki/Merkle_tree
 ## Usage
 Install
 ```
-go install "github.com/chrisdoherty4/gomerkle"
+go install "github.com/chrisdoherty4/merklehash"
 ```
 and run
 ```
-gomerkle <directory>
+merklehash <directory>
 ```
 ## Known issues
 * Symlinks are not followed and the app errors instead.
