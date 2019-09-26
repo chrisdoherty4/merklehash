@@ -1,4 +1,4 @@
-package merklehash
+package merkletree
 
 import (
 	"container/list"
@@ -124,13 +124,7 @@ type algorithm struct {
 	New   func() hash.Hash
 }
 
-// We're going to create an AlgorithmList so we can append a function todo
-// retrieve the hash.Hash.
-type algorithmList struct {
-	list.List
-}
-
-var algorithms = algorithmList{}
+var algorithms = list.List{}
 
 // GetHasher retrieves the hasher for a given algorithm identifier.
 func GetHasher(ident string) hash.Hash {

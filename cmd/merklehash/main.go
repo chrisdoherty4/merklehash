@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chrisdoherty4/merklehash/merklehash"
+	"github.com/chrisdoherty4/merklehash/pkg/merkletree"
 )
 
 func main() {
@@ -26,18 +26,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	hasher := merklehash.GetHasher(*alg)
-
-	if hasher == nil {
+	// TODO: Change to use the merkletree.Supports function
+	if !merkletree.Supports(*alg) {
 		fmt.Fprintf(os.Stdout, "'%v' is not a valid algorithm. Value algorithms are:\n", *alg)
-		for e := merklehash.Algorithms.Front(); e != nil; e = e.Next() {
-			fmt.Fprintf(os.Stdout, "  %v\n", e.Value.(*merklehash.Algorithm).Ident)
+		for ident := range merkletree.GetAlgorithms() {
+			fmt.Fprintf(os.Stdout, "  %v\n", ident)
 		}
 		os.Exit(0)
 	}
 
 	// Create a new merkle hash and output the hex representation of it's hash.
-	fmt.Fprintf(os.Stdout, "%x", merklehash.New(flag.Arg(0), hasher).Hash())
+	fmt.Fprintf(
+		os.Stdout,
+		"%x",
+		merkletree.New(flag.Arg(0), merkletree.GetHasher(*alg)).Hash(),
+	)
 
 	if !*raw {
 		fmt.Fprintf(os.Stdout, " %v", flag.Arg(0))
