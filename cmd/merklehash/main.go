@@ -26,7 +26,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	hasher := merklehash.Algorithms.GetHasher(*alg)
+	hasher := merklehash.GetHasher(*alg)
 
 	if hasher == nil {
 		fmt.Fprintf(os.Stdout, "'%v' is not a valid algorithm. Value algorithms are:\n", *alg)

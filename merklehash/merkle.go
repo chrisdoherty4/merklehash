@@ -119,23 +119,23 @@ func (this *MerkleTree) Hash() []byte {
 }
 
 // algorithm defines a selectable algorithm from the command line interface.
-type Algorithm struct {
+type algorithm struct {
 	Ident string
 	New   func() hash.Hash
 }
 
 // We're going to create an AlgorithmList so we can append a function todo
 // retrieve the hash.Hash.
-type AlgorithmList struct {
+type algorithmList struct {
 	list.List
 }
 
-var Algorithms = AlgorithmList{}
+var algorithms = algorithmList{}
 
 // GetHasher retrieves the hasher for a given algorithm identifier.
-func (this *AlgorithmList) GetHasher(ident string) hash.Hash {
-	for e := this.Front(); e != nil; e = e.Next() {
-		alg := e.Value.(*Algorithm)
+func GetHasher(ident string) hash.Hash {
+	for e := algorithms.Front(); e != nil; e = e.Next() {
+		alg := e.Value.(*algorithm)
 		if alg.Ident == ident {
 			return alg.New()
 		}
@@ -144,45 +144,54 @@ func (this *AlgorithmList) GetHasher(ident string) hash.Hash {
 	return nil
 }
 
-// Has checks if an algorithm identifier exists in the Algorithmlist.
-func (this *AlgorithmList) Has(ident string) bool {
-	return this.GetHasher(ident) != nil
+// Supports checks if an algorithm identifier is supported.
+func Supports(ident string) bool {
+	return GetHasher(ident) != nil
+}
+
+func GetAlgorithms() []string {
+	algs := make([]string, algorithms.Len())
+
+	i := 0
+	for alg := algorithms.Front(); alg != nil; alg = algorithms.Next() {
+		algs[i] = alg.Ident
+	}
 }
 
 func init() {
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"md5",
 		func() hash.Hash { return md5.New() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha224",
 		func() hash.Hash { return sha256.New224() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha256",
 		func() hash.Hash { return sha256.New() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha384",
 		func() hash.Hash { return sha512.New384() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha512",
 		func() hash.Hash { return sha512.New() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha3-224",
 		func() hash.Hash { return sha3.New224() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha3-256",
 		func() hash.Hash { return sha3.New256() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha3-384",
 		func() hash.Hash { return sha3.New384() },
 	})
-	Algorithms.PushBack(&Algorithm{
+	algorithms.PushBack(&algorithm{
 		"sha3-512",
 		func() hash.Hash { return sha3.New512() },
 	})
