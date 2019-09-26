@@ -149,13 +149,17 @@ func Supports(ident string) bool {
 	return GetHasher(ident) != nil
 }
 
+// GetAlgorithms retrieves all the identifiers for supported hashing algorithms.
 func GetAlgorithms() []string {
 	algs := make([]string, algorithms.Len())
 
 	i := 0
-	for alg := algorithms.Front(); alg != nil; alg = algorithms.Next() {
-		algs[i] = alg.Ident
+	for e := algorithms.Front(); e != nil; e = e.Next() {
+		algs[i] = e.Value.(*algorithm).Ident
+		i++
 	}
+
+	return algs
 }
 
 func init() {
