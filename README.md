@@ -6,17 +6,16 @@ for hashing arbitrary sized directories.
 Caution should be exercised when hashing directories with large files or large quantities
 of files as it could take some time.
 
-## CLI
+## Install
 
-Install
+**Requires**
 
-```bash
-go install "github.com/chrisdoherty4/merklehash"
-```
-
-and run
+* Golang 1.12
 
 ```bash
+go get "github.com/chrisdoherty4/merklehash/cmd/merklehash"
+go install "github.com/chrisdoherty4/merklehash/cmd/merklehash"
+
 merklehash <directory>
 ```
 
