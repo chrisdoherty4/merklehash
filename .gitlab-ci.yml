@@ -1,0 +1,9 @@
+image: golang:1.12-buster
+
+build:
+  script:
+    - go build -o merklehash cmd/merklehash/*.go
+
+deploy:
+  script: echo "TODO: Deploying"
+  only: ['tags']
