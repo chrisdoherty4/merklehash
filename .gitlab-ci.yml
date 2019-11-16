@@ -5,5 +5,5 @@ build:
     - go build -o merklehash cmd/merklehash/*.go
 
 deploy:
-  script: echo "TODO: Deploying"
+  script: echo "TODO Deploying"
   only: ['tags']
