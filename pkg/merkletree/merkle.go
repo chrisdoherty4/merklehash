@@ -104,7 +104,6 @@ func New(path string, hasher hash.Hash) *MerkleTree {
 	return &directory
 }
 
-// add adds a node to a MerkleTree.
 func (this *MerkleTree) add(node hashable) {
 	this.nodes = append(this.nodes, node)
 }
@@ -118,7 +117,6 @@ func (this *MerkleTree) Hash() []byte {
 	return this.hasher.Sum(nil)
 }
 
-// algorithm defines a selectable algorithm from the command line interface.
 type algorithm struct {
 	Ident string
 	New   func() hash.Hash
