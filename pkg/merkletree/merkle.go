@@ -40,29 +40,29 @@ func newPathHasher(path string, hasher hash.Hash) *pathHasher {
 }
 
 // Hash uses the pathHasher's hasher to generate the hash of a file.
-func (this *pathHasher) Hash() []byte {
-	fd, err := os.Open(this.path)
+func (t *pathHasher) Hash() []byte {
+	fd, err := os.Open(t.path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer fd.Close()
 
-	if _, err := io.Copy(this.hasher, fd); err != nil {
+	if _, err := io.Copy(t.hasher, fd); err != nil {
 		log.Fatal(err)
 	}
 
-	return this.hasher.Sum(nil)
+	return t.hasher.Sum(nil)
 }
 
 // MerkleTree is an interface to retrieve directory hashes.
-// This structure forms the basis for the merkle hash.
+// t structure forms the basis for the merkle hash.
 type MerkleTree struct {
 	pathHasher
 	nodes []hashable
 }
 
-// New creates and initialises a MerkleTree structure.
+// New creates and initializes a MerkleTree structure.
 // MerkleTree's has can be retrieved via the MerkleTree.Hash() interface.
 func New(path string, hasher hash.Hash) *MerkleTree {
 	path, err := filepath.Abs(path)
@@ -104,17 +104,17 @@ func New(path string, hasher hash.Hash) *MerkleTree {
 	return &directory
 }
 
-func (this *MerkleTree) add(node hashable) {
-	this.nodes = append(this.nodes, node)
+func (t *MerkleTree) add(node hashable) {
+	t.nodes = append(t.nodes, node)
 }
 
 // Hash retrieves the merkle hash for a given directory.
-func (this *MerkleTree) Hash() []byte {
-	for _, node := range this.nodes {
-		this.hasher.Write(node.Hash())
+func (t *MerkleTree) Hash() []byte {
+	for _, node := range t.nodes {
+		t.hasher.Write(node.Hash())
 	}
 
-	return this.hasher.Sum(nil)
+	return t.hasher.Sum(nil)
 }
 
 type algorithm struct {
