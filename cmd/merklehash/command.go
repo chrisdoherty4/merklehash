@@ -25,7 +25,7 @@ was hashed.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if !merkletree.Supports(algorithm) {
 				fmt.Fprintf(os.Stdout, "'%v' is not a valid algorithm. Value algorithms are:\n", algorithm)
-				for ident := range merkletree.GetAlgorithms() {
+				for _, ident := range merkletree.GetAlgorithms() {
 					fmt.Printf("  %v\n", ident)
 				}
 				os.Exit(0)
@@ -37,8 +37,19 @@ was hashed.`,
 			)
 		},
 	}
+
+	supportsCmd = &cobra.Command{
+		Use:   "algorithms",
+		Short: "List supported algorithms.",
+		Run: func(cmd *cobra.Command, args []string) {
+			for _, ident := range merkletree.GetAlgorithms() {
+				fmt.Printf("%v\n", ident)
+			}
+		},
+	}
 )
 
 func init() {
 	MerkleHashCmd.Flags().StringVarP(&algorithm, "algorithm", "a", "sha256", "Hashing algorithm to use")
+	MerkleHashCmd.AddCommand(supportsCmd)
 }
