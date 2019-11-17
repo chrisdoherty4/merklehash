@@ -45,7 +45,6 @@ func main() {
 * Add support for specifying multiple directories.
 * Overridable protection against huge file systems.
 * Resolve symlinks when traversing directory structures.
-* Improve/expand help output.
 * Package for Linux platforms.
 * Package in a Windows installer.
 * Complete test code.
