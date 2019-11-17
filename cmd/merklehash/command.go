@@ -28,7 +28,7 @@ was hashed.`,
 				for _, ident := range merkletree.GetAlgorithms() {
 					fmt.Printf("  %v\n", ident)
 				}
-				os.Exit(0)
+				os.Exit(1)
 			}
 
 			fmt.Printf(
