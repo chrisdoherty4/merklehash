@@ -3,8 +3,10 @@
 A go implementation of a [merkle tree](https://en.wikipedia.org/wiki/Merkle_tree)
 for hashing arbitrary sized directories.
 
-Caution should be exercised when hashing directories with large files or large quantities
-of files as it could take some time.
+Caution should be exercised when hashing directories with large files or large 
+quantities of files as it could take some time. Should a platform support
+recursive symlinks one must be careful to ensure they do not exist within
+the directory being hashed as it'll result in an infinite loop.
 
 ## Install
 
@@ -21,34 +23,20 @@ merklehash <directory>
 
 ## API
 
-The `merklehash` package exposes a list of supported algorithms and their
-string identifiers and a method fo creating a new `MerkleTree` structure. You
-can utilize the merklehash package in your own go code.
+The `merkletree` package exposes a single function, `New()`. The function
+accepts a `context.Context` that can be cancelled by the caller as desired.
 
 ### Example
 
 ```golang
 package main
 
-import "github.com/chrisdoherty4/merklehash/pkg/merklehash"
+import "github.com/chrisdoherty4/merklehash/merkletree"
 
 func main() {
   path := "/directory/to/hash"
-  merkleHash := merklehash.New(path, merkletree.GetHasher('sha256'))
+  hash := merkletree.New(context.Background(), path, sha256.New)
 
-  fmt.Fprintf(os.Stdout, "%x\n", merkleHash.Hash())
+  fmt.Printf("%x\n", hash)
 }
 ```
-
-## To do
-
-* Add support for specifying multiple directories.
-* Overridable protection against huge file systems.
-* Resolve symlinks when traversing directory structures.
-* Package for Linux platforms.
-* Package in a Windows installer.
-* Complete test code.
-
-## Known issues
-
-* Symlinks are not followed and the app errors instead.
