@@ -10,10 +10,6 @@ the directory being hashed as it'll result in an infinite loop.
 
 ## Install
 
-**Requires**
-
-* Golang 1.12
-
 ```bash
 go get "github.com/chrisdoherty4/merklehash/cmd/merklehash"
 go install "github.com/chrisdoherty4/merklehash/cmd/merklehash"
