@@ -3,7 +3,7 @@ all: test build
 
 .PHONY: build
 build:
-	go build -o merklehash ./cmd/merklehash
+	go build -o merklehash ./
 
 .PHONY: test
 test:

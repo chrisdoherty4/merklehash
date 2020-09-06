@@ -11,8 +11,8 @@ the directory being hashed as it'll result in an infinite loop.
 ## Install
 
 ```bash
-go get "github.com/chrisdoherty4/merklehash/cmd/merklehash"
-go install "github.com/chrisdoherty4/merklehash/cmd/merklehash"
+go get "github.com/chrisdoherty4/merklehash"
+go install "github.com/chrisdoherty4/merklehash"
 
 merklehash <directory>
 ```
