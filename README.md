@@ -31,7 +31,7 @@ import "github.com/chrisdoherty4/merklehash/merkletree"
 
 func main() {
   path := "/directory/to/hash"
-  hash := merkletree.New(context.Background(), path, sha256.New)
+  hash, _ := merkletree.New(context.Background(), path, sha256.New)
 
   fmt.Printf("%x\n", hash)
 }
