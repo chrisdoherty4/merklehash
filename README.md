@@ -1,3 +1,5 @@
+![Gitlab pipeline status](https://img.shields.io/gitlab/pipeline/chrisdoherty4/merklehash/master)
+
 # merklehash
 
 A go implementation of a [merkle tree](https://en.wikipedia.org/wiki/Merkle_tree)
