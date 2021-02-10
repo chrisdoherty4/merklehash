@@ -2,147 +2,128 @@ package merkletree
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"hash"
 	"io"
+	"io/ioutil"
 	"os"
-	"path/filepath"
+	"path"
 )
-
-// ErrCancelled is triggered when the calling context is closed.
-var ErrCancelled = errors.New("Cancelled")
 
 // HashFactory creates a new instance of hash.Hash
 type HashFactory func() hash.Hash
+
+// digestResult stores a hashing result suitable for communicating over a channel.
+type digestResult struct {
+	// Index is used to track file ordering so we can produce deterministic digests.
+	index int
+	// Data is the hash data in bytes
+	digest []byte
+	// Err holds an error should something go wrong with hashing.
+	err error
+}
+
+type digestFunc func(p string) ([]byte, error)
 
 // New hashes a directory by iterating over all files and nested files combining
 // their individual digests into 1. Symlinks are not followed and there is no
 // protection against a recursive symlink.
 func New(
 	ctx context.Context,
-	dirPath string,
+	dirpath string,
 	factory HashFactory,
 ) ([]byte, error) {
-	info, err := os.Stat(dirPath)
+	files, err := ioutil.ReadDir(dirpath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not read directory: %v %v", dirpath, err)
 	}
 
-	if !info.IsDir() {
-		return nil, fmt.Errorf("%v is not a directory", dirPath)
-	}
-
-	var fileCount int32
-	results := make(chan hashResult)
+	var fileCount int
+	results := make(chan digestResult)
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	err = filepath.Walk(
-		dirPath,
-		func(filepath string, info os.FileInfo, err error) error {
-			if info.IsDir() {
-				return nil
-			}
-
-			go func(index int32) {
-				hash, err := hashFile(filepath, factory)
-
-				result := hashResult{
-					Index: index,
-				}
-
-				switch {
-				case err != nil:
-					result.Err = err
-				default:
-					result.Data = hash
-				}
-
-				select {
-				case <-ctx.Done():
-					return
-				case results <- result:
-				}
-			}(fileCount)
-
-			fileCount++
-
-			return nil
-		},
+	var (
+		fn digestFunc
+		p  string
 	)
 
-	if err != nil {
-		cancel()
-		return nil, err
-	}
+	for _, file := range files {
+		p = path.Join(dirpath, file.Name())
 
-	hashes := make([][]byte, fileCount)
+		if file.IsDir() {
+			fn = func(p string) ([]byte, error) { return New(ctx, p, factory) }
+		} else {
+			fn = func(p string) ([]byte, error) { return calculateFileDigest(p, factory) }
+		}
 
-	// Collect hashes storing them in a slice to maintain ordering. This
-	// ensures that when we iterate over the collected hashes and add them to
-	// our final hash we have determinism as the Goroutines launched in the
-	// Walk() function above are scheduled in an non-deterministic order.
-	err = func() error {
-		for {
-			if fileCount == 0 {
-				return nil
+		go func(i int, p string, fn digestFunc) {
+			hash, err := fn(p)
+
+			result := digestResult{
+				index:  i,
+				digest: hash,
+				err:    err,
 			}
 
 			select {
 			case <-ctx.Done():
-				return ErrCancelled
+				return
+			case results <- result:
+			}
+		}(fileCount, p, fn)
+		fileCount++
+	}
+
+	digests := make([][]byte, fileCount)
+
+	// Collect hashes storing them in a slice to maintain ordering so that when we produce the
+	// final hash it's deterministic.
+	err = func() error {
+		for ; fileCount != 0; fileCount-- {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
 			default:
 			}
 
 			select {
 			case <-ctx.Done():
-				return ErrCancelled
+				return ctx.Err()
 			case result := <-results:
-				if result.Err != nil {
+				if result.err != nil {
 					return err
 				}
 
-				hashes[result.Index] = result.Data
-
-				fileCount--
+				digests[result.index] = result.digest
 			}
 		}
+
+		return nil
 	}()
 
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
 	hasher := factory()
-	for _, hash := range hashes {
-		hasher.Write(hash)
+	for _, d := range digests {
+		hasher.Write(d)
 	}
 
 	return hasher.Sum(nil), nil
 }
 
-type hashResult struct {
-	// Err holds an error should something go wrong with hashing.
-	Err error
-
-	// Index is used to track file ordering.
-	Index int32
-
-	// Data is the hash data in bytes
-	Data []byte
-}
-
-func hashFile(filepath string, factory HashFactory) ([]byte, error) {
+func calculateFileDigest(filepath string, factory HashFactory) ([]byte, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not open file: %v %v", filepath, err)
 	}
 	defer file.Close()
 
 	hasher := factory()
 	if _, err := io.Copy(hasher, file); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create digest: %v", err)
 	}
 
 	return hasher.Sum(nil), nil
