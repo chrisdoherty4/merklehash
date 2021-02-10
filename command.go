@@ -15,8 +15,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ()
-
 var (
 	// The long help for the command
 	longHelp string
@@ -55,7 +53,7 @@ func init() {
 	})
 
 	longHelp = fmt.Sprintf(`
-merklehash is a hashing tool for generating digests of arbitrary depth directory 
+merklehash is a hashing tool for generating digests of arbitrary depth directory
 hierarchies.
 
 Supported algorithms include:
