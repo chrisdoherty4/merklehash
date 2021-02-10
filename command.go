@@ -15,8 +15,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/chrisdoherty4/merklehash/merkletree"
 	"github.com/spf13/cobra"
+
+	"github.com/chrisdoherty4/merklehash/merkletree"
 )
 
 var (
