@@ -7,6 +7,10 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
+	"hash"
+	"hash/adler32"
+	"hash/crc32"
+	"hash/fnv"
 	"os"
 	"sort"
 	"strings"
@@ -20,6 +24,9 @@ var (
 	longHelp string
 
 	// A map of supported algorithms.
+	// todo add
+	//		crc32.New
+	//		crc64.New
 	algs map[string]merkletree.HashFactory = map[string]merkletree.HashFactory{
 		"md5":        md5.New,
 		"sha1":       sha1.New,
@@ -29,6 +36,14 @@ var (
 		"sha512":     sha512.New,
 		"sha512/224": sha512.New512_224,
 		"sha512/256": sha512.New512_256,
+		"fnv/128":    fnv.New128,
+		"fnv/128a":   fnv.New128a,
+		"fnv/32":     func() hash.Hash { return fnv.New32() },
+		"fnv/32a":    func() hash.Hash { return fnv.New32a() },
+		"fnv/64":     func() hash.Hash { return fnv.New64() },
+		"fnv/64a":    func() hash.Hash { return fnv.New64a() },
+		"crc32ieee":  func() hash.Hash { return crc32.NewIEEE() },
+		"adler32":    func() hash.Hash { return adler32.New() },
 	}
 
 	// MerkleHashCmd represents the root command for the merkle hasher.
