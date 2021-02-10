@@ -52,16 +52,16 @@ func New(
 		p = path.Join(dirpath, file.Name())
 
 		if file.IsDir() {
-			fn = func(p string) ([]byte, error) { return New(ctx, p, factory) }
+			fn = func(path string) ([]byte, error) { return New(ctx, path, factory) }
 		} else {
-			fn = func(p string) ([]byte, error) { return calculateFileDigest(p, factory) }
+			fn = func(path string) ([]byte, error) { return calculateFileDigest(path, factory) }
 		}
 
-		go func(i int, p string, fn digestFunc) {
-			hash, err := fn(p)
+		go func(index int, path string, fn digestFunc) {
+			hash, err := fn(path)
 
 			result := digestResult{
-				index:  i,
+				index:  index,
 				digest: hash,
 				err:    err,
 			}
