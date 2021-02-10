@@ -20,18 +20,7 @@ var (
 	longHelp string
 
 	// A map of supported algorithms.
-	algs map[string]merkletree.HashFactory
-
-	// MerkleHashCmd represents the root command for the merkle hasher.
-	merkleHashCmd *cobra.Command
-
-	// Optional argument
-	algorithm string
-)
-
-func init() {
-	algs = make(map[string]merkletree.HashFactory)
-	algs = map[string]merkletree.HashFactory{
+	algs map[string]merkletree.HashFactory = map[string]merkletree.HashFactory{
 		"md5":        md5.New,
 		"sha1":       sha1.New,
 		"sha224":     sha256.New224,
@@ -42,13 +31,21 @@ func init() {
 		"sha512/256": sha512.New512_256,
 	}
 
+	// MerkleHashCmd represents the root command for the merkle hasher.
+	merkleHashCmd *cobra.Command
+
+	// Optional argument
+	algorithm string
+)
+
+func init() {
 	algsSlice := []string{}
 	for alg := range algs {
 		algsSlice = append(algsSlice, alg)
 	}
 
 	sort.Strings(algsSlice)
-	algsSlice = mapSlice(algsSlice, func(v string) string {
+	algsSlice = mapStrings(algsSlice, func(v string) string {
 		return fmt.Sprintf("  * %v", v)
 	})
 
@@ -63,7 +60,7 @@ Supported algorithms include:
 	)
 
 	merkleHashCmd = &cobra.Command{
-		Use:     "merklehash <directory path>",
+		Use:     "merklehash [options] <directory path>",
 		Short:   "merklehash is a directory hasher.",
 		Long:    longHelp,
 		Example: "  merklehash /path/to/directory",
@@ -86,7 +83,7 @@ Supported algorithms include:
 				fmt.Fprintln(os.Stderr, err)
 			}
 
-			fmt.Printf("%x\n", hash)
+			fmt.Printf("%v %x\n", algorithm, hash)
 		},
 	}
 
@@ -99,7 +96,7 @@ Supported algorithms include:
 	)
 }
 
-func mapSlice(vs []string, f func(string) string) []string {
+func mapStrings(vs []string, f func(string) string) []string {
 	vsm := make([]string, len(vs))
 	for i, v := range vs {
 		vsm[i] = f(v)
